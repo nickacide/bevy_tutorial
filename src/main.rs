@@ -2,7 +2,11 @@ use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 mod tower;
+mod target;
+mod bullet;
 use tower::*;
+use target::*;
+use bullet::*;
 
 pub const HEIGHT: f32 = 720.0;
 pub const WIDTH: f32 = 1280.0;
@@ -11,6 +15,12 @@ pub const WIDTH: f32 = 1280.0;
 #[reflect(Component)]
 pub struct Lifetime {
     timer: Timer,
+}
+
+#[derive(Reflect, Component, Default)]
+#[reflect(Component)]
+pub struct Health {
+    value: i32
 }
 
 fn spawn_camera(mut commands: Commands) {
@@ -42,6 +52,24 @@ fn spawn_basic_scene(
             ..default()
         })
         .insert(Name::new("Cube"));
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Cube {size: 0.4})),
+        material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
+        transform: Transform::from_xyz(-2.0, 1.0, -2.0),
+        ..default()
+    })
+    .insert(Target {speed: 0.3})
+    .insert(Health {value: 3})
+    .insert(Name::new("Target"));
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Cube {size: 0.4})),
+        material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
+        transform: Transform::from_xyz(-5.0, 1.0, -2.0),
+        ..default()
+    })
+    .insert(Target {speed: 0.3})
+    .insert(Health {value: 3})
+    .insert(Name::new("Target"));
 }
 
 fn spawn_light(mut commands: Commands) {
@@ -56,6 +84,16 @@ fn spawn_light(mut commands: Commands) {
             ..default()
         })
         .insert(Name::new("Point Light"));
+}
+
+pub struct SetupPlugin;
+impl Plugin for SetupPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_startup_system(spawn_basic_scene)
+        .add_startup_system(spawn_light)
+        .add_startup_system(spawn_camera)
+        .add_startup_system(spawn_tower);
+    }
 }
 
 fn main() {
@@ -73,15 +111,13 @@ fn main() {
             ..default()
         }))
         .add_plugin(WorldInspectorPlugin)
-        .register_type::<Tower>()
-        // Our Systems
-        .add_startup_system(spawn_basic_scene)
-        .add_startup_system(spawn_light)
-        .add_startup_system(spawn_camera)
-        .add_startup_system(spawn_tower)
-        //
-        .add_system(tower_shooting)
-        .add_system(bullet_despawn)
+        .register_type::<Lifetime>()
+        .register_type::<Health>()
+        // Our plugins
+        .add_plugin(SetupPlugin)
+        .add_plugin(BulletPlugin)
+        .add_plugin(TargetPlugin)
+        .add_plugin(TowerPlugin)
         //
         .run();
 }
