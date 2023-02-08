@@ -1,12 +1,15 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_mod_picking::*;
 
-mod tower;
-mod target;
 mod bullet;
-use tower::*;
-use target::*;
+mod camera;
+mod target;
+mod tower;
 use bullet::*;
+use camera::*;
+use target::*;
+use tower::*;
 
 pub const HEIGHT: f32 = 720.0;
 pub const WIDTH: f32 = 1280.0;
@@ -20,7 +23,7 @@ pub struct Lifetime {
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
 pub struct Health {
-    value: i32
+    value: i32,
 }
 
 fn spawn_camera(mut commands: Commands) {
@@ -29,6 +32,7 @@ fn spawn_camera(mut commands: Commands) {
             transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         })
+        .insert(PickingCameraBundle::default())
         .insert(Name::new("Camera"));
 }
 
@@ -39,37 +43,39 @@ fn spawn_basic_scene(
 ) {
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Plane { size: 5.0 })),
+            mesh: meshes.add(Mesh::from(shape::Plane { size: 25.0 })),
             material: materials.add(Color::rgb(0.9, 0.25, 0.2).into()),
             ..default()
         })
         .insert(Name::new("Ground"));
+    // commands
+    //     .spawn(PbrBundle {
+    //         mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+    //         material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
+    //         transform: Transform::from_xyz(0.0, 0.5, 0.0),
+    //         ..default()
+    //     })
+    //     .insert(Name::new("Cube"));
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.4 })),
             material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+            transform: Transform::from_xyz(-2.0, 1.0, -2.0),
             ..default()
         })
-        .insert(Name::new("Cube"));
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube {size: 0.4})),
-        material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
-        transform: Transform::from_xyz(-2.0, 1.0, -2.0),
-        ..default()
-    })
-    .insert(Target {speed: 0.3})
-    .insert(Health {value: 3})
-    .insert(Name::new("Target"));
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube {size: 0.4})),
-        material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
-        transform: Transform::from_xyz(-5.0, 1.0, -2.0),
-        ..default()
-    })
-    .insert(Target {speed: 0.3})
-    .insert(Health {value: 3})
-    .insert(Name::new("Target"));
+        .insert(Target { speed: 0.3 })
+        .insert(Health { value: 3 })
+        .insert(Name::new("Target"));
+    commands
+        .spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.4 })),
+            material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
+            transform: Transform::from_xyz(-5.0, 1.0, -2.0),
+            ..default()
+        })
+        .insert(Target { speed: 0.3 })
+        .insert(Health { value: 3 })
+        .insert(Name::new("Target"));
 }
 
 fn spawn_light(mut commands: Commands) {
@@ -90,9 +96,10 @@ pub struct SetupPlugin;
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(spawn_basic_scene)
-        .add_startup_system(spawn_light)
-        .add_startup_system(spawn_camera)
-        .add_startup_system(spawn_tower);
+            .add_startup_system(spawn_light)
+            .add_startup_system(spawn_camera)
+            .add_startup_system(create_base_tower)
+            .add_system(camera_controls);
     }
 }
 
@@ -113,6 +120,8 @@ fn main() {
         .add_plugin(WorldInspectorPlugin)
         .register_type::<Lifetime>()
         .register_type::<Health>()
+        // Mod Picking
+        .add_plugins(DefaultPickingPlugins)
         // Our plugins
         .add_plugin(SetupPlugin)
         .add_plugin(BulletPlugin)
