@@ -103,6 +103,21 @@ impl Plugin for SetupPlugin {
     }
 }
 
+fn spawn_target(keyboard: Res<Input<KeyCode>>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
+    if keyboard.just_pressed(KeyCode::F) {
+        commands
+            .spawn(PbrBundle {
+                mesh: meshes.add(Mesh::from(shape::Cube { size: 0.4 })),
+                material: materials.add(Color::rgb(0.2, 0.2, 0.2).into()),
+                transform: Transform::from_xyz(-5.0, 1.0, -2.0),
+                ..default()
+            })
+            .insert(Target { speed: 0.3 })
+            .insert(Health { value: 3 })
+            .insert(Name::new("Target"));
+    }
+}
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
@@ -127,6 +142,7 @@ fn main() {
         .add_plugin(BulletPlugin)
         .add_plugin(TargetPlugin)
         .add_plugin(TowerPlugin)
+        .add_system(spawn_target)
         //
         .run();
 }
